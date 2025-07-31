@@ -45,7 +45,6 @@ export class GridService {
     return { x, y }
   }
 
-  // Pathfinding intégré
   private manhattanDistance(a: Position, b: Position): number {
     return Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
   }
@@ -91,12 +90,10 @@ export class GridService {
         return calculatedPath
       }
 
-      // Examiner tous les voisins
       for (const dir of directionValues) {
         const neighborX = currentNode.x + dir.x
         const neighborY = currentNode.y + dir.y
 
-        // Vérifier si le voisin est valide
         if (
           neighborX < 0 ||
           neighborX >= this.GRID_SIZE ||
@@ -106,12 +103,10 @@ export class GridService {
           continue
         }
 
-        // Vérifier si c'est un obstacle (corps du serpent)
         if (obstacles.some((obs) => obs.x === neighborX && obs.y === neighborY)) {
           continue
         }
 
-        // Vérifier si déjà dans la liste fermée
         if (closedList.some((node) => node.x === neighborX && node.y === neighborY)) {
           continue
         }
@@ -120,7 +115,6 @@ export class GridService {
         const hScore = this.manhattanDistance({ x: neighborX, y: neighborY }, target)
         const fScore = gScore + hScore
 
-        // Vérifier si ce chemin vers le voisin est meilleur
         const existingNode = openList.find((node) => node.x === neighborX && node.y === neighborY)
         if (!existingNode) {
           openList.push({
@@ -141,7 +135,6 @@ export class GridService {
     return []
   }
 
-  // Getters publics
   getSnake(): Snake {
     return { ...this.snake }
   }
@@ -163,7 +156,6 @@ export class GridService {
     }
   }
 
-  // Actions de contrôle
   changeDirection(newDirection: Direction): boolean {
     const currentDir = this.snake.direction
     const isOpposite =
@@ -179,7 +171,6 @@ export class GridService {
     return false
   }
 
-  // Action principale : déplacer le serpent
   moveSnake(): { success: boolean; gameOver: boolean; scoreIncreased: boolean } {
     if (this.gameOver) {
       return { success: false, gameOver: true, scoreIncreased: false }
@@ -187,7 +178,6 @@ export class GridService {
 
     const head = { ...this.snake.body[0] }
 
-    // Calculer la nouvelle position de la tête
     switch (this.snake.direction) {
       case 'UP':
         head.y -= 1
@@ -203,23 +193,19 @@ export class GridService {
         break
     }
 
-    // Vérifier les collisions avec les murs
     if (head.x < 0 || head.x >= this.GRID_SIZE || head.y < 0 || head.y >= this.GRID_SIZE) {
       this.gameOver = true
       return { success: false, gameOver: true, scoreIncreased: false }
     }
 
-    // Vérifier les collisions avec le corps
     const bodyWithoutHead = this.snake.body.slice(1)
     if (bodyWithoutHead.some((segment) => segment.x === head.x && segment.y === head.y)) {
       this.gameOver = true
       return { success: false, gameOver: true, scoreIncreased: false }
     }
 
-    // Vérifier si le serpent mange la pomme
     const isEating = head.x === this.apple.x && head.y === this.apple.y
 
-    // Mettre à jour le corps du serpent
     const newBody = [head, ...this.snake.body]
     if (!isEating) {
       newBody.pop()
@@ -237,13 +223,11 @@ export class GridService {
       isEating,
     }
 
-    // Mettre à jour le path après chaque mouvement
     this.updatePath()
 
     return { success: true, gameOver: false, scoreIncreased: isEating }
   }
 
-  // Reset et initialisation
   reset(): void {
     this.snake = this.createInitialSnake()
     this.apple = this.generateRandomApple()
@@ -252,7 +236,6 @@ export class GridService {
     this.updatePath()
   }
 
-  // Utilitaires pour l'IA
   getObstacles(): Position[] {
     return this.snake.body.slice(1)
   }
@@ -265,7 +248,6 @@ export class GridService {
     return this.snake.direction
   }
 
-  // Configuration
   setSpeed(speed: number): void {
     this.snake.speed = speed
   }

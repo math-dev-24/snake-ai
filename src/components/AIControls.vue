@@ -25,19 +25,23 @@
         </div>
 
         <!-- Boutons de contrôle -->
-        <div class="space-y-2 mb-4 flex gap-2 justify-between items-center">
-            <button @click="toggleAIMode" :disabled="isTraining"
-                class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
-                {{ isAIPlaying ? 'Arrêter IA' : 'Démarrer IA' }}
+        <div class="flex gap-2 justify-between items-center mb-4">
+            <button @click="toggleAIMode" class="btn"
+                :class="{ 'btn-green-selected': isAIPlaying, 'btn-green': !isAIPlaying }">
+                {{ isAIPlaying ? 'Stop AI' : 'Start AI' }}
             </button>
 
-            <button @click="startTraining" :disabled="isTraining || isAIPlaying"
-                class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
-                {{ isTraining ? 'Entraînement en cours...' : 'Entraîner IA' }}
+            <button v-if="!isTraining" @click="startTraining" :disabled="isAIPlaying" class="btn"
+                :class="{ 'btn-green-selected': isTraining, 'btn-green': !isTraining }">
+                Entraîner IA
             </button>
 
-            <button @click="loadModel" :disabled="isTraining"
-                class="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
+            <button v-else @click="stopTraining" class="btn btn-red">
+                Arrêter entraînement
+            </button>
+
+            <button @click="loadModel" :disabled="isTraining" class="btn"
+                :class="{ 'btn-purple-selected': isTraining, 'btn-purple': !isTraining }">
                 Charger modèle
             </button>
         </div>
@@ -58,13 +62,9 @@
         <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <h4 class="text-blue-800 font-semibold mb-2 text-lg">Performances IA</h4>
             <div class="grid grid-cols-2 gap-2 text-sm">
-                <div class="flex justify-between p-2 bg-white rounded border border-blue-100">
+                <div class="flex justify-between p-2 bg-white rounded border border-blue-100 col-span-2">
                     <span class="text-gray-600">Parties totales:</span>
                     <span class="font-semibold text-blue-700">{{ aiPerformance.gamesPlayed }}</span>
-                </div>
-                <div class="flex justify-between p-2 bg-white rounded border border-blue-100">
-                    <span class="text-gray-600">Parties actuelles:</span>
-                    <span class="font-semibold text-blue-700">{{ aiGamesPlayed }}</span>
                 </div>
                 <div class="flex justify-between p-2 bg-white rounded border border-blue-100">
                     <span class="text-gray-600">Score moyen:</span>
@@ -73,10 +73,6 @@
                 <div class="flex justify-between p-2 bg-white rounded border border-blue-100">
                     <span class="text-gray-600">Meilleur score:</span>
                     <span class="font-semibold text-blue-700">{{ aiPerformance.bestScore }}</span>
-                </div>
-                <div class="flex justify-between p-2 bg-white rounded border border-blue-100 col-span-2">
-                    <span class="text-gray-600">Taux de victoire:</span>
-                    <span class="font-semibold text-blue-700">{{ Math.round(aiPerformance.winRate * 100) }}%</span>
                 </div>
             </div>
         </div>
@@ -135,12 +131,12 @@ interface Props {
     trainingProgress: number
     aiPerformance: AIPerformance
     trainingConfig: AITrainingConfig
-    aiGamesPlayed: number
 }
 
 interface Emits {
     (e: 'toggle-ai'): void
     (e: 'train-ai'): void
+    (e: 'stop-training'): void
     (e: 'load-model'): void
     (e: 'update-config', config: Partial<AITrainingConfig>): void
     (e: 'start-ai-game'): void
@@ -156,6 +152,10 @@ const toggleAIMode = () => {
 const startTraining = () => {
     emit('start-ai-game')
     emit('train-ai')
+}
+
+const stopTraining = () => {
+    emit('stop-training')
 }
 
 const loadModel = () => {

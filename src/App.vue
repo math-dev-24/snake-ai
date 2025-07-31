@@ -2,6 +2,7 @@
 import GridSnake from './components/GridSnake.vue'
 import HumainControl from './components/HumainControl.vue'
 import AIControls from './components/AIControls.vue'
+import LogAi from './components/LogAi.vue'
 import { useSnake } from './hooks/useSnake'
 import { ref } from 'vue'
 
@@ -23,12 +24,14 @@ const {
   aiConfidence,
   trainAI,
   toggleAIMode,
+  stopTraining,
   loadSavedModel,
   aiPerformance,
   trainingConfig,
+  trainingProgress,
   startAIGame,
   updateTrainingConfig,
-  ai_games_played
+  logAI
 } = useSnake()
 
 const mode = ref<'game' | 'ai'>('game')
@@ -36,9 +39,9 @@ const mode = ref<'game' | 'ai'>('game')
 </script>
 
 <template>
-  <div class="grid grid-cols-2 gap-4 p-4">
+  <div class="grid grid-cols-2 gap-2">
     <!-- Panneau de gauche -->
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4 p-4">
       <div class="flex items-center gap-2">
         <button @click="mode = 'game'"
           class="bg-gradient-to-br flex items-center gap-1 from-sky-100 to-blue-100 text-sky-700 hover:text-sky-800 px-4 py-2 rounded-2xl font-medium text-base transition-all duration-300 transform hover:scale-102 hover:shadow-md shadow-sm border border-sky-200/50 focus:outline-none focus:ring-2 focus:ring-sky-300/30 cursor-pointer"
@@ -66,8 +69,8 @@ const mode = ref<'game' | 'ai'>('game')
         @show-path="show_path = !show_path" />
 
       <AIControls v-if="mode === 'ai'" :isAIPlaying="isAIPlaying" :isTraining="isTraining" :aiDecision="aiDecision"
-        :aiConfidence="aiConfidence" :trainingProgress="0" :aiPerformance="aiPerformance"
-        :trainingConfig="trainingConfig" :aiGamesPlayed="ai_games_played" @toggle-ai="toggleAIMode" @train-ai="trainAI"
+        :aiConfidence="aiConfidence" :trainingProgress="trainingProgress" :aiPerformance="aiPerformance"
+        :trainingConfig="trainingConfig" @toggle-ai="toggleAIMode" @train-ai="trainAI" @stop-training="stopTraining"
         @load-model="loadSavedModel" @update-config="updateTrainingConfig" @start-ai-game="startAIGame" />
     </div>
 
@@ -76,5 +79,7 @@ const mode = ref<'game' | 'ai'>('game')
       <GridSnake :grid-size="20" :snake="snake.body" :apple="apple" :path="path" :show-path="show_path"
         :direction="snake.direction" />
     </div>
+
+    <LogAi v-if="mode === 'ai'" :logAI="logAI" />
   </div>
 </template>

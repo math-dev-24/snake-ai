@@ -36,7 +36,7 @@ export class AIService {
     this.model = tf.sequential({
       layers: [
         tf.layers.dense({
-          inputShape: [12],
+          inputShape: [13],
           units: 64,
           activation: 'relu',
         }),
@@ -45,7 +45,7 @@ export class AIService {
           activation: 'relu',
         }),
         tf.layers.dense({
-          units: 4, // 4 directions possibles
+          units: 4,
           activation: 'softmax',
         }),
       ],
@@ -61,7 +61,10 @@ export class AIService {
   public encodeGameState(gameState: GameState): number[] {
     const { snakeHead, snakeBody, apple, direction, gridSize } = gameState
 
-    // Encodage de l'état du jeu en 12 valeurs
+    // Calculer la distance à la pomme
+    const distanceToApple = this.calculateDistance(snakeHead, apple)
+
+    // Encodage de l'état du jeu en 13 valeurs (ajout de la distance)
     const state = [
       // Position relative de la tête du serpent (normalisée)
       snakeHead.x / gridSize,
@@ -70,6 +73,9 @@ export class AIService {
       // Position relative de la pomme (normalisée)
       apple.x / gridSize,
       apple.y / gridSize,
+
+      // Distance à la pomme (normalisée)
+      distanceToApple / (gridSize * Math.sqrt(2)),
 
       // Direction actuelle (one-hot encoding)
       direction === 'UP' ? 1 : 0,
@@ -85,6 +91,43 @@ export class AIService {
     ]
 
     return state
+  }
+
+  private calculateDistance(pos1: Position, pos2: Position): number {
+    return Math.sqrt(Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2))
+  }
+
+  public calculateReward(
+    currentHead: Position,
+    newHead: Position,
+    apple: Position,
+    scoreIncreased: boolean,
+    gameOver: boolean,
+    hitWall: boolean,
+    hitSelf: boolean,
+  ): number {
+    let reward = 0
+
+    if (scoreIncreased) {
+      reward += 10
+    }
+
+    if (gameOver) {
+      if (hitWall) {
+        reward -= 10
+      } else if (hitSelf) {
+        reward -= 20
+      }
+    } else {
+      const currentDistance = this.calculateDistance(currentHead, apple)
+      const newDistance = this.calculateDistance(newHead, apple)
+
+      if (newDistance < currentDistance) {
+        reward += 1
+      }
+    }
+
+    return reward
   }
 
   private checkDangerInDirection(
@@ -243,6 +286,10 @@ export class AIService {
         (this.performance.winRate * (this.performance.gamesPlayed - 1) + 1) /
         this.performance.gamesPlayed
     }
+  }
+
+  public setPerformance(performance: AIPerformance): void {
+    this.performance = { ...performance }
   }
 
   public getPerformance(): AIPerformance {

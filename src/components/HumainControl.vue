@@ -20,9 +20,8 @@ const emit = defineEmits<{
     <div
         class="flex flex-col items-center justify-center gap-4 p-6 bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border border-slate-100">
         <div class="flex gap-4 w-full justify-between">
-            <button @click="emit('play')"
-                class="flex-1 group relative overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100 hover:from-rose-200 hover:to-pink-200 text-rose-700 hover:text-rose-800 px-6 py-4 rounded-2xl font-medium text-base transition-all duration-300 transform hover:scale-102 hover:shadow-md shadow-sm border border-rose-200/50 focus:outline-none focus:ring-2 focus:ring-rose-300/30"
-                :class="{ 'opacity-60 cursor-not-allowed': inPlay }" :disabled="inPlay">
+            <button @click="emit('play')" class="btn btn-rose" :class="{ 'opacity-60 cursor-not-allowed': inPlay }"
+                :disabled="inPlay">
                 <span class="relative z-10 flex items-center gap-3">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -34,8 +33,7 @@ const emit = defineEmits<{
             </button>
 
             <!-- Bouton Restart -->
-            <button @click="emit('restart')"
-                class="flex-1 group relative overflow-hidden bg-gradient-to-br from-sky-100 to-blue-100 hover:from-sky-200 hover:to-blue-200 text-sky-700 hover:text-sky-800 px-6 py-4 rounded-2xl font-medium text-base transition-all duration-300 transform hover:scale-102 hover:shadow-md shadow-sm border border-sky-200/50 focus:outline-none focus:ring-2 focus:ring-sky-300/30">
+            <button @click="emit('restart')" class="btn btn-sky">
                 <span class="relative z-10 flex items-center gap-3">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -47,8 +45,7 @@ const emit = defineEmits<{
             </button>
 
             <!-- Bouton Show Path -->
-            <button @click="emit('showPath')"
-                class="flex-1 group relative overflow-hidden bg-gradient-to-br from-amber-100 to-yellow-100 hover:from-amber-200 hover:to-yellow-200 text-amber-700 hover:text-amber-800 px-6 py-4 rounded-2xl font-medium text-base transition-all duration-300 transform hover:scale-102 hover:shadow-md shadow-sm border border-amber-200/50 focus:outline-none focus:ring-2 focus:ring-amber-300/30">
+            <button @click="emit('showPath')" class="btn btn-amber">
                 <span class="relative z-10 flex items-center gap-3">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"

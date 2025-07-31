@@ -1,1 +1,50 @@
 @import 'tailwindcss';
+
+.btn {
+  @apply w-full flex-1 relative overflow-hidden bg-gradient-to-br px-6 py-4 rounded-2xl font-medium text-base transition-all duration-300 transform shadow-sm border border-rose-200/50 focus:outline-none focus:ring-2 focus:ring-rose-300/30;
+  @apply transition-all duration-300;
+}
+
+.btn-rose {
+  @apply from-rose-100 to-pink-100 hover:from-rose-200 hover:to-pink-200 text-rose-700 hover:text-rose-800;
+}
+
+.btn-sky {
+  @apply from-sky-100 to-blue-100 hover:from-sky-200 hover:to-blue-200 text-sky-700 hover:text-sky-800;
+}
+
+.btn-green {
+  @apply from-green-100 to-green-200 hover:from-green-200 hover:to-green-300 text-green-700 hover:text-green-800;
+}
+
+.btn-purple {
+  @apply from-purple-100 to-purple-200 hover:from-purple-200 hover:to-purple-300 text-purple-700 hover:text-purple-800;
+}
+
+.btn-amber {
+  @apply from-amber-100 to-yellow-100 hover:from-amber-200 hover:to-yellow-200 text-amber-700 hover:text-amber-800;
+}
+
+.btn-sky-selected {
+  @apply bg-gradient-to-br from-sky-200 to-blue-200 shadow-lg;
+}
+
+.btn-rose-selected {
+  @apply bg-gradient-to-br from-rose-200 to-pink-200 shadow-lg;
+}
+
+.btn-green-selected {
+  @apply bg-gradient-to-br from-green-200 to-green-300 shadow-lg;
+}
+
+.btn-amber-selected {
+  @apply bg-gradient-to-br from-amber-200 to-yellow-200 shadow-lg;
+}
+
+.btn-purple-selected {
+  @apply bg-gradient-to-br from-purple-200 to-purple-300 shadow-lg;
+}
+
+.btn-amber-selected {
+  @apply bg-gradient-to-br from-amber-200 to-yellow-200 shadow-lg;
+}
