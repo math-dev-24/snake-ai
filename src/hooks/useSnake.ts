@@ -1,8 +1,6 @@
-import type { Position, Snake, Direction } from '@/types'
 import { ref, watch, onUnmounted, computed } from 'vue'
-import { GridService } from '@/services/gridService'
-import { ControlService } from '@/services/controlService'
-import { AIService } from '@/services/aiService'
+import type { Position, Snake, Direction } from '@/types'
+import { GridService, ControlService, AIService, LoggerService } from '@/services'
 import type { AIDecision, AIPerformance, AITrainingConfig } from '@/types/ai'
 import { directionKeys } from '@/shared/constants'
 
@@ -10,6 +8,7 @@ export const useSnake = () => {
   const gridService = new GridService()
   const controlService = new ControlService()
   const aiService = new AIService()
+  const loggerService = new LoggerService()
 
   // États réactifs pour l'IA
   const isAIPlaying = ref<boolean>(false)
@@ -18,13 +17,6 @@ export const useSnake = () => {
   const aiDecision = ref<AIDecision | null>(null)
   const aiConfidence = ref<number>(0)
   const trainingProgress = ref<number>(0)
-  const logAI = ref<
-    {
-      message: string
-      type: 'info' | 'error' | 'success'
-      date: Date
-    }[]
-  >([])
 
   const aiPerformance = ref<AIPerformance>({
     gamesPlayed: 0,
@@ -59,7 +51,6 @@ export const useSnake = () => {
 
   let gameInterval: number | null = null
 
-  // Fonctions utilitaires
   const getNextHeadPosition = (currentHead: Position, direction: Direction): Position => {
     switch (direction) {
       case 'UP':
@@ -124,6 +115,7 @@ export const useSnake = () => {
     if (gameInterval) {
       clearInterval(gameInterval)
       gameInterval = null
+      loggerService.log(`🎮 Partie terminée - Score: ${score.value}`, 'info')
     }
 
     if (is_ai_mode.value && isAIPlaying.value) {
@@ -137,11 +129,10 @@ export const useSnake = () => {
 
       aiService.setPerformance(aiPerformance.value)
 
-      logAI.value.push({
-        message: `🎮 Partie IA terminée - Score: ${score.value}, Parties totales: ${aiPerformance.value.gamesPlayed}, Meilleur score: ${aiPerformance.value.bestScore}`,
-        type: 'info',
-        date: new Date(),
-      })
+      loggerService.log(
+        `🎮 Partie IA terminée - Score: ${score.value}, Parties totales: ${aiPerformance.value.gamesPlayed}, Meilleur score: ${aiPerformance.value.bestScore}`,
+        'info',
+      )
 
       setTimeout(() => {
         resetGame()
@@ -178,7 +169,6 @@ export const useSnake = () => {
     }
   }
 
-  // Gestion de l'IA
   const makeAIDecision = async (
     snakeBody: Position[],
     apple: Position,
@@ -198,11 +188,7 @@ export const useSnake = () => {
 
       return decision.direction
     } catch (error) {
-      logAI.value.push({
-        message: `❌ Erreur lors de la prise de décision IA: ${error}`,
-        type: 'error',
-        date: new Date(),
-      })
+      loggerService.log(`❌ Erreur lors de la prise de décision IA: ${error}`, 'error')
       return directionKeys[Math.floor(Math.random() * directionKeys.length)]
     }
   }
@@ -221,11 +207,10 @@ export const useSnake = () => {
         currentDirection,
         20, // GRID_SIZE
       )
-      logAI.value.push({
-        message: `IA Decision: ${aiDirection}, Current direction: ${currentDirection}`,
-        type: 'info',
-        date: new Date(),
-      })
+      loggerService.log(
+        `IA Decision: ${aiDirection}, Current direction: ${currentDirection}`,
+        'info',
+      )
 
       // Calculer la nouvelle position pour la récompense
       const newHead = getNextHeadPosition(currentSnake.body[0], aiDirection)
@@ -250,18 +235,10 @@ export const useSnake = () => {
       )
 
       if (reward !== 0) {
-        logAI.value.push({
-          message: `🎯 Récompense IA: ${reward > 0 ? '+' : ''}${reward}`,
-          type: 'info',
-          date: new Date(),
-        })
+        loggerService.log(`🎯 Récompense IA: ${reward > 0 ? '+' : ''}${reward}`, 'info')
       }
     } catch (error) {
-      logAI.value.push({
-        message: `❌ Erreur lors de la décision IA: ${error}`,
-        type: 'error',
-        date: new Date(),
-      })
+      loggerService.log(`❌ Erreur lors de la décision IA: ${error}`, 'error')
     }
   }
 
@@ -280,6 +257,7 @@ export const useSnake = () => {
       gameInterval = null
     }
     updateReactiveState()
+    loggerService.log(`🎮 Partie terminée - Score: ${score.value}`, 'info')
   }
 
   const startNormalGame = (): void => {
@@ -340,19 +318,11 @@ export const useSnake = () => {
     let steps = 0
     const maxSteps = 1000
 
-    logAI.value.push({
-      message: `🎮 Début d'un nouvel épisode d'entraînement`,
-      type: 'info',
-      date: new Date(),
-    })
+    loggerService.log(`🎮 Début d'un nouvel épisode d'entraînement`, 'info')
 
     while (steps < maxSteps) {
       if (shouldStopTraining.value) {
-        logAI.value.push({
-          message: "⏹️ Arrêt de l'épisode d'entraînement",
-          type: 'info',
-          date: new Date(),
-        })
+        loggerService.log("⏹️ Arrêt de l'épisode d'entraînement", 'info')
         break
       }
 
@@ -375,11 +345,10 @@ export const useSnake = () => {
       }
 
       if (steps % 10 === 0) {
-        logAI.value.push({
-          message: `Step ${steps}: IA direction = ${aiDirection}, Score = ${gameState.score}`,
-          type: 'info',
-          date: new Date(),
-        })
+        loggerService.log(
+          `Step ${steps}: IA direction = ${aiDirection}, Score = ${gameState.score}`,
+          'info',
+        )
       }
 
       gridService.changeDirection(aiDirection)
@@ -409,18 +378,13 @@ export const useSnake = () => {
 
       let done = false
       if (result.gameOver) {
-        logAI.value.push({
-          message: `💀 Game Over à l'étape ${steps}, score final: ${gameState.score}`,
-          type: 'info',
-          date: new Date(),
-        })
+        loggerService.log(
+          `💀 Game Over à l'étape ${steps}, score final: ${gameState.score}`,
+          'info',
+        )
         done = true
       } else if (result.scoreIncreased) {
-        logAI.value.push({
-          message: `🍎 Pomme mangée! Score: ${gameState.score}`,
-          type: 'info',
-          date: new Date(),
-        })
+        loggerService.log(`🍎 Pomme mangée! Score: ${gameState.score}`, 'info')
       }
 
       const newSnake = gridService.getSnake()
@@ -447,11 +411,10 @@ export const useSnake = () => {
       await new Promise((resolve) => setTimeout(resolve, 50))
     }
 
-    logAI.value.push({
-      message: `🏁 Épisode terminé: ${steps} pas, score: ${gridService.getGameState().score}`,
-      type: 'info',
-      date: new Date(),
-    })
+    loggerService.log(
+      `🏁 Épisode terminé: ${steps} pas, score: ${gridService.getGameState().score}`,
+      'info',
+    )
     aiService.updatePerformance(gridService.getGameState().score, steps >= maxSteps)
 
     syncPerformanceWithService()
@@ -473,27 +436,15 @@ export const useSnake = () => {
         trainingLoss: [],
       }
 
-      logAI.value.push({
-        message: "🚀 Début de l'entraînement IA...",
-        type: 'info',
-        date: new Date(),
-      })
+      loggerService.log("🚀 Début de l'entraînement IA...", 'info')
 
       for (let episode = 0; episode < 1000; episode++) {
         if (shouldStopTraining.value) {
-          logAI.value.push({
-            message: "⏹️ Arrêt de l'entraînement demandé",
-            type: 'info',
-            date: new Date(),
-          })
+          loggerService.log("⏹️ Arrêt de l'entraînement demandé", 'info')
           break
         }
 
-        logAI.value.push({
-          message: `📊 Épisode ${episode + 1}/1000`,
-          type: 'info',
-          date: new Date(),
-        })
+        loggerService.log(`📊 Épisode ${episode + 1}/1000`, 'info')
         await simulateTrainingEpisodeWithVisibleGrid(gridService, updateReactiveState)
 
         const progress = ((episode + 1) / 1000) * 100
@@ -501,37 +452,21 @@ export const useSnake = () => {
         onProgress?.(progress)
 
         if (episode % 10 === 0) {
-          logAI.value.push({
-            message: `🧠 Entraînement du modèle (épisode ${episode})`,
-            type: 'info',
-            date: new Date(),
-          })
+          loggerService.log(`🧠 Entraînement du modèle (épisode ${episode})`, 'info')
           await aiService.trainModel()
         }
       }
 
       if (!shouldStopTraining.value) {
         await aiService.saveModel()
-        logAI.value.push({
-          message: `✅ Entraînement terminé. Performances: ${aiPerformance.value}`,
-          type: 'info',
-          date: new Date(),
-        })
+        loggerService.log(`✅ Entraînement terminé. Performances: ${aiPerformance.value}`, 'info')
       } else {
-        logAI.value.push({
-          message: "⏹️ Entraînement arrêté par l'utilisateur",
-          type: 'info',
-          date: new Date(),
-        })
+        loggerService.log("⏹️ Entraînement arrêté par l'utilisateur", 'info')
       }
 
       syncPerformanceWithService()
     } catch (error) {
-      logAI.value.push({
-        message: `❌ Erreur lors de l'entraînement: ${error}`,
-        type: 'error',
-        date: new Date(),
-      })
+      loggerService.log(`❌ Erreur lors de l'entraînement: ${error}`, 'error')
     } finally {
       isTraining.value = false
       shouldStopTraining.value = false
@@ -542,22 +477,10 @@ export const useSnake = () => {
     try {
       await aiService.loadModel()
       syncPerformanceWithService()
-      logAI.value.push({
-        message: 'Modèle IA chargé avec succès',
-        type: 'info',
-        date: new Date(),
-      })
-      logAI.value.push({
-        message: `Performances chargées: ${aiPerformance.value}`,
-        type: 'info',
-        date: new Date(),
-      })
+      loggerService.log('Modèle IA chargé avec succès', 'info')
+      loggerService.log(`Performances chargées: ${aiPerformance.value}`, 'info')
     } catch (error) {
-      logAI.value.push({
-        message: `Erreur lors du chargement du modèle: ${error}`,
-        type: 'error',
-        date: new Date(),
-      })
+      loggerService.log(`Erreur lors du chargement du modèle: ${error}`, 'error')
     }
   }
 
@@ -571,11 +494,7 @@ export const useSnake = () => {
 
   const stopTraining = () => {
     shouldStopTraining.value = true
-    logAI.value.push({
-      message: "🛑 Demande d'arrêt de l'entraînement",
-      type: 'info',
-      date: new Date(),
-    })
+    loggerService.log("🛑 Demande d'arrêt de l'entraînement", 'info')
   }
 
   const resetAIPerformance = () => {
@@ -634,7 +553,7 @@ export const useSnake = () => {
     aiPerformance,
     trainingConfig,
     trainingProgress,
-    logAI,
+    loggerService,
 
     // Computed IA
     isAIReady,

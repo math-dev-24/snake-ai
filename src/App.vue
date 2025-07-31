@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import GridSnake from './components/GridSnake.vue'
-import HumainControl from './components/HumainControl.vue'
-import AIControls from './components/AIControls.vue'
-import LogAi from './components/LogAi.vue'
-import { useSnake } from './hooks/useSnake'
+import GridSnake from '@/components/GridSnake.vue'
+import HumainControl from '@/components/HumainControl.vue'
+import AIControls from '@/components/AIControls.vue'
+import LoggerGame from '@/components/LoggerGame.vue'
+import { useSnake } from '@/hooks/useSnake'
 import { ref } from 'vue'
 
 const {
@@ -31,7 +31,7 @@ const {
   trainingProgress,
   startAIGame,
   updateTrainingConfig,
-  logAI
+  loggerService,
 } = useSnake()
 
 const mode = ref<'game' | 'ai'>('game')
@@ -39,7 +39,7 @@ const mode = ref<'game' | 'ai'>('game')
 </script>
 
 <template>
-  <div class="grid grid-cols-2 gap-2">
+  <div class="grid grid-cols-2 gap-2 min-h-screen">
     <!-- Panneau de gauche -->
     <div class="flex flex-col gap-4 p-4">
       <div class="flex items-center gap-2">
@@ -80,6 +80,6 @@ const mode = ref<'game' | 'ai'>('game')
         :direction="snake.direction" />
     </div>
 
-    <LogAi v-if="mode === 'ai'" :logAI="logAI" />
+    <LoggerGame :logger="loggerService" />
   </div>
 </template>
