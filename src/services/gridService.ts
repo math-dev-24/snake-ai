@@ -33,7 +33,6 @@ export class GridService {
     const x = Math.floor(Math.random() * this.GRID_SIZE)
     const y = Math.floor(Math.random() * this.GRID_SIZE)
 
-    // Éviter les bords et le corps du serpent
     if (
       x === 0 ||
       y === 0 ||

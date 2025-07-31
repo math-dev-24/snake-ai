@@ -4,16 +4,17 @@ import { GridService } from '@/services/gridService'
 import type { GameState, AIDecision, AIPerformance } from '@/types/ai'
 import type { Position, Direction } from '@/types'
 import type { AITrainingConfig } from '@/types/ai'
+import { directionKeys } from '@/shared/constants'
 
 export const useAI = () => {
   const aiService = new AIService()
 
-  // État de l'IA
-  const isAIPlaying = ref(false)
-  const isTraining = ref(false)
+  const isAIPlaying = ref<boolean>(false)
+  const isTraining = ref<boolean>(false)
   const aiDecision = ref<AIDecision | null>(null)
-  const aiConfidence = ref(0)
-  const trainingProgress = ref(0)
+  const aiConfidence = ref<number>(0)
+  const trainingProgress = ref<number>(0)
+
   const performance = ref<AIPerformance>({
     gamesPlayed: 0,
     averageScore: 0,
@@ -22,7 +23,6 @@ export const useAI = () => {
     trainingLoss: [],
   })
 
-  // Configuration d'entraînement
   const trainingConfig = ref<AITrainingConfig>({
     learningRate: 0.001,
     batchSize: 32,
@@ -32,7 +32,6 @@ export const useAI = () => {
     gamma: 0.95,
   })
 
-  // Calculer l'état du jeu pour l'IA
   const getGameState = (
     snakeBody: Position[],
     apple: Position,
@@ -48,7 +47,6 @@ export const useAI = () => {
     }
   }
 
-  // Faire une décision avec l'IA
   const makeAIDecision = async (
     snakeBody: Position[],
     apple: Position,
@@ -62,22 +60,16 @@ export const useAI = () => {
       aiDecision.value = decision
       aiConfidence.value = decision.confidence
 
-      if (decision.confidence < 0.1) {
-        console.log('Confiance faible, utilisation direction aléatoire')
-        const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT']
-        return directions[Math.floor(Math.random() * directions.length)]
+      if (decision.confidence < 0.5) {
+        return directionKeys[Math.floor(Math.random() * directionKeys.length)]
       }
 
       return decision.direction
     } catch (error) {
       console.error('Erreur lors de la prise de décision IA:', error)
-      // Retourner une direction aléatoire en cas d'erreur
-      const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT']
-      return directions[Math.floor(Math.random() * directions.length)]
+      return directionKeys[Math.floor(Math.random() * directionKeys.length)]
     }
   }
-
-  // Entraîner l'IA avec le vrai GridService visible
   const trainAI = async (
     gridService: GridService,
     updateReactiveState: () => void,
@@ -87,10 +79,8 @@ export const useAI = () => {
     trainingProgress.value = 0
 
     try {
-      // Vider la mémoire avant l'entraînement pour éviter les incohérences
       aiService.resetMemory()
 
-      // Réinitialiser les performances
       performance.value = {
         gamesPlayed: 0,
         averageScore: 0,
@@ -101,28 +91,22 @@ export const useAI = () => {
 
       console.log("🚀 Début de l'entraînement IA...")
 
-      // Simulation d'entraînement avec le vrai GridService visible
       for (let episode = 0; episode < 1000; episode++) {
         console.log(`📊 Épisode ${episode + 1}/1000`)
-
         await simulateTrainingEpisodeWithVisibleGrid(gridService, updateReactiveState)
 
-        // Mettre à jour le progrès
         const progress = ((episode + 1) / 1000) * 100
         trainingProgress.value = progress
         onProgress?.(progress)
 
-        // Entraîner le modèle périodiquement
         if (episode % 10 === 0) {
           console.log(`🧠 Entraînement du modèle (épisode ${episode})`)
           await aiService.trainModel()
         }
       }
 
-      // Sauvegarder le modèle entraîné
       await aiService.saveModel()
 
-      // Mettre à jour les performances
       performance.value = aiService.getPerformance()
       console.log('✅ Entraînement terminé. Performances:', performance.value)
     } catch (error) {
@@ -132,17 +116,15 @@ export const useAI = () => {
     }
   }
 
-  // Simuler une partie d'entraînement avec le vrai GridService visible
   const simulateTrainingEpisodeWithVisibleGrid = async (
     gridService: GridService,
     updateReactiveState: () => void,
   ) => {
-    // Réinitialisation explicite pour s'assurer que l'état est propre
     gridService.reset()
-    updateReactiveState() // Mettre à jour l'interface
+    updateReactiveState()
 
     let steps = 0
-    const maxSteps = 1000 // Nombre fixe de pas maximum
+    const maxSteps = 1000
 
     console.log(`🎮 Début d'un nouvel épisode d'entraînement`)
 
@@ -152,10 +134,8 @@ export const useAI = () => {
       const currentDirection = gridService.getCurrentDirection()
       const gameState = gridService.getGameState()
 
-      // Pendant l'entraînement, utiliser plus d'exploration
       let aiDirection: Direction
 
-      // 80% de chance d'utiliser l'IA, 20% de chance d'action aléatoire pour l'exploration
       if (Math.random() < 0.8) {
         aiDirection = await makeAIDecision(
           currentSnake.body,
@@ -164,39 +144,33 @@ export const useAI = () => {
           20, // GRID_SIZE
         )
       } else {
-        // Action aléatoire pour l'exploration
-        const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT']
-        aiDirection = directions[Math.floor(Math.random() * directions.length)]
+        aiDirection = directionKeys[Math.floor(Math.random() * directionKeys.length)]
       }
 
       if (steps % 10 === 0) {
-        // Log moins fréquent pour éviter le spam
         console.log(`Step ${steps}: IA direction = ${aiDirection}, Score = ${gameState.score}`)
       }
 
-      // Appliquer la décision au GridService
       gridService.changeDirection(aiDirection)
       const result = gridService.moveSnake()
-      updateReactiveState() // Mettre à jour l'interface en temps réel
+      updateReactiveState()
 
-      // Ajouter l'expérience à la mémoire
       const currentState = aiService.encodeGameState(
         getGameState(currentSnake.body, currentApple, currentDirection, 20),
       )
 
-      let reward = 1 // Récompense de base pour survivre
+      let reward = 1
       let done = false
 
       if (result.gameOver) {
         console.log(`💀 Game Over à l'étape ${steps}, score final: ${gameState.score}`)
-        reward = -10 // Récompense négative pour la collision
+        reward = -10
         done = true
       } else if (result.scoreIncreased) {
         console.log(`🍎 Pomme mangée! Score: ${gameState.score}`)
-        reward = 10 // Récompense positive pour manger la pomme
+        reward = 10
       }
 
-      // Obtenir le nouvel état après le mouvement
       const newSnake = gridService.getSnake()
       const newApple = gridService.getApple()
       const newDirection = gridService.getCurrentDirection()
@@ -218,22 +192,17 @@ export const useAI = () => {
 
       steps++
 
-      // Délai pour voir l'animation (plus rapide pendant l'entraînement)
-      await new Promise((resolve) => setTimeout(resolve, 50)) // 50ms entre chaque mouvement
+      await new Promise((resolve) => setTimeout(resolve, 50))
     }
 
     console.log(`🏁 Épisode terminé: ${steps} pas, score: ${gridService.getGameState().score}`)
-    // Mettre à jour les performances
     aiService.updatePerformance(gridService.getGameState().score, steps >= maxSteps)
   }
 
-  // Fonctions utilitaires
   const getDirectionIndex = (direction: Direction): number => {
-    const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT']
-    return directions.indexOf(direction)
+    return directionKeys.indexOf(direction)
   }
 
-  // Charger le modèle sauvegardé
   const loadSavedModel = async () => {
     try {
       await aiService.loadModel()

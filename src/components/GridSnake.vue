@@ -131,6 +131,8 @@ const getEyesContainerPosition = (direction: Direction) => {
                                 'top-1/2 right-0 -translate-y-1/2 translate-x-1': direction === 'RIGHT',
                                 'left-1/2 top-0 -translate-x-1/2 -translate-y-1': direction === 'UP',
                                 'left-1/2 bottom-0 -translate-x-1/2 translate-y-1': direction === 'DOWN'
+                            }" :style="{
+                                'z-index': '10'
                             }">
                         </div>
                     </div>

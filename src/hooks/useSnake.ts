@@ -19,12 +19,10 @@ export const useSnake = () => {
     updateTrainingConfig,
   } = useAI()
 
-  // Services
   const gridService = new GridService()
   const controlService = new ControlService()
 
-  // State réactif
-  const game_speed = ref<number>(200)
+  const game_speed = ref<number>(100)
   const game_over = ref<boolean>(false)
   const score = ref<number>(0)
   const is_playing = ref<boolean>(false)
@@ -34,7 +32,6 @@ export const useSnake = () => {
   const ai_speed = ref<number>(0)
   const ai_games_played = ref<number>(0)
 
-  // État réactif pour Vue
   const snake = ref<Snake>(gridService.getSnake())
   const apple = ref<Position>(gridService.getApple())
   const path = ref<Position[]>(gridService.getPath())
@@ -146,6 +143,12 @@ export const useSnake = () => {
   // Actions de jeu
   const resetGame = (): void => {
     gridService.reset()
+    game_over.value = false
+    is_playing.value = false
+    if (gameInterval) {
+      clearInterval(gameInterval)
+      gameInterval = null
+    }
     updateReactiveState()
   }
 
