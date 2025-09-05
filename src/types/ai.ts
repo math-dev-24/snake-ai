@@ -27,6 +27,8 @@ export interface AITrainingConfig {
   epochs: number
   memorySize: number
   epsilon: number
+  epsilonDecay: number
+  epsilonMin: number
   gamma: number
 }
 

@@ -43,10 +43,7 @@ const formatTime = (date: Date) => {
                     class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                     <span class="text-white text-sm font-bold">📊</span>
                 </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Journal d'activité IA</h3>
-                    <p class="text-sm text-gray-500">Suivi des actions de l'intelligence artificielle</p>
-                </div>
+              <h3 class="text-lg font-semibold text-gray-900">Journal d'activité</h3>
             </div>
             <div class="flex items-center gap-2">
                 <div class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">

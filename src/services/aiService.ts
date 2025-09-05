@@ -25,8 +25,12 @@ export class AIService {
     epochs: 10,
     memorySize: 10000,
     epsilon: 0.1,
+    epsilonDecay: 0.995,
+    epsilonMin: 0.01,
     gamma: 0.95,
   }
+
+  private stepsSurvived = 0
 
   constructor() {
     this.initializeModel()
@@ -36,10 +40,16 @@ export class AIService {
     this.model = tf.sequential({
       layers: [
         tf.layers.dense({
-          inputShape: [13],
+          inputShape: [20],
+          units: 128,
+          activation: 'relu',
+        }),
+        tf.layers.dropout({ rate: 0.2 }),
+        tf.layers.dense({
           units: 64,
           activation: 'relu',
         }),
+        tf.layers.dropout({ rate: 0.2 }),
         tf.layers.dense({
           units: 32,
           activation: 'relu',
@@ -64,18 +74,28 @@ export class AIService {
     // Calculer la distance à la pomme
     const distanceToApple = this.calculateDistance(snakeHead, apple)
 
-    // Encodage de l'état du jeu en 13 valeurs (ajout de la distance)
-    const state = [
+    // Distance Manhattan à la pomme
+    const manhattanDistance = Math.abs(snakeHead.x - apple.x) + Math.abs(snakeHead.y - apple.y)
+
+    // Calculer l'espace libre dans chaque direction
+    const freeSpaces = this.calculateFreeSpacesInDirections(snakeHead, snakeBody, gridSize)
+    
+    // Détecter les pièges potentiels
+    const trapRisk = this.calculateTrapRisk(snakeHead, snakeBody, gridSize)
+
+    // Encodage de l'état du jeu en 20 valeurs
+    return [
       // Position relative de la tête du serpent (normalisée)
       snakeHead.x / gridSize,
       snakeHead.y / gridSize,
-
       // Position relative de la pomme (normalisée)
       apple.x / gridSize,
       apple.y / gridSize,
 
-      // Distance à la pomme (normalisée)
+      // Distance euclidienne à la pomme (normalisée)
       distanceToApple / (gridSize * Math.sqrt(2)),
+      // Distance Manhattan à la pomme (normalisée)
+      manhattanDistance / (gridSize * 2),
 
       // Direction actuelle (one-hot encoding)
       direction === 'UP' ? 1 : 0,
@@ -83,14 +103,23 @@ export class AIService {
       direction === 'LEFT' ? 1 : 0,
       direction === 'RIGHT' ? 1 : 0,
 
-      // Danger dans les 4 directions (0 = sûr, 1 = danger)
+      // Danger immédiat dans les 4 directions (0 = sûr, 1 = danger)
       this.checkDangerInDirection(snakeHead, snakeBody, 'UP', gridSize) ? 1 : 0,
       this.checkDangerInDirection(snakeHead, snakeBody, 'DOWN', gridSize) ? 1 : 0,
       this.checkDangerInDirection(snakeHead, snakeBody, 'LEFT', gridSize) ? 1 : 0,
       this.checkDangerInDirection(snakeHead, snakeBody, 'RIGHT', gridSize) ? 1 : 0,
-    ]
 
-    return state
+      // Espace libre dans chaque direction (normalisé)
+      freeSpaces.UP / gridSize,
+      freeSpaces.DOWN / gridSize,
+      freeSpaces.LEFT / gridSize,
+      freeSpaces.RIGHT / gridSize,
+
+      // Risque de piège (0-1)
+      trapRisk,
+      // Longueur du serpent (normalisée)
+      snakeBody.length / (gridSize * gridSize),
+    ]
   }
 
   private calculateDistance(pos1: Position, pos2: Position): number {
@@ -110,20 +139,39 @@ export class AIService {
 
     if (scoreIncreased) {
       reward += 10
+      this.stepsSurvived = 0
+    } else {
+      this.stepsSurvived++
+      reward += 0.05 // Petite récompense de survie
     }
 
     if (gameOver) {
       if (hitWall) {
-        reward -= 10
+        reward -= 8
       } else if (hitSelf) {
-        reward -= 20
+        reward -= 15
       }
     } else {
-      const currentDistance = this.calculateDistance(currentHead, apple)
-      const newDistance = this.calculateDistance(newHead, apple)
+      // Récompense basée sur le chemin Manhattan optimal
+      const currentManhattan = Math.abs(currentHead.x - apple.x) + Math.abs(currentHead.y - apple.y)
+      const newManhattan = Math.abs(newHead.x - apple.x) + Math.abs(newHead.y - apple.y)
 
-      if (newDistance < currentDistance) {
+      if (newManhattan < currentManhattan) {
+        // Se rapproche sur le chemin Manhattan optimal
+        reward += 2
+      } else if (newManhattan > currentManhattan) {
+        // S'éloigne du chemin optimal
+        reward -= 1
+      }
+
+      // Bonus si le mouvement est exactement sur la direction optimale
+      if (this.isOnOptimalManhattanPath(currentHead, newHead, apple)) {
         reward += 1
+      }
+
+      // Pénalité progressive si trop lent
+      if (this.stepsSurvived > 30) {
+        reward -= 0.2
       }
     }
 
@@ -176,7 +224,7 @@ export class AIService {
     const prediction = this.model.predict(stateTensor) as tf.Tensor
     const actionProbs = (await prediction.array()) as number[][]
 
-    // Exploration vs exploitation
+    // Exploration vs exploitation avec epsilon decay
     const shouldExplore = Math.random() < this.config.epsilon
     let actionIndex: number
 
@@ -184,6 +232,11 @@ export class AIService {
       actionIndex = Math.floor(Math.random() * 4)
     } else {
       actionIndex = actionProbs[0].indexOf(Math.max(...actionProbs[0]))
+    }
+
+    // Decay epsilon après chaque décision
+    if (this.config.epsilon > this.config.epsilonMin) {
+      this.config.epsilon *= this.config.epsilonDecay
     }
 
     const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT']
@@ -249,7 +302,7 @@ export class AIService {
   ): Promise<number[][]> {
     if (!this.model) return []
 
-    const targets = states.map((state, index) => {
+    const targets = states.map((_, index) => {
       const target = new Array(4).fill(0)
       target[actions[index]] = rewards[index]
       return target
@@ -333,5 +386,67 @@ export class AIService {
 
   public updateConfig(newConfig: Partial<AITrainingConfig>): void {
     Object.assign(this.config, newConfig)
+  }
+
+  private calculateFreeSpacesInDirections(
+    head: Position,
+    body: Position[],
+    gridSize: number,
+  ): Record<Direction, number> {
+    const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT']
+    const freeSpaces: Record<Direction, number> = {
+      UP: 0,
+      DOWN: 0,
+      LEFT: 0,
+      RIGHT: 0,
+    }
+
+    directions.forEach((direction) => {
+      let count = 0
+      let currentPos = this.getNextPosition(head, direction)
+
+      while (
+        currentPos.x >= 0 &&
+        currentPos.x < gridSize &&
+        currentPos.y >= 0 &&
+        currentPos.y < gridSize &&
+        !body.some((segment) => segment.x === currentPos.x && segment.y === currentPos.y)
+      ) {
+        count++
+        currentPos = this.getNextPosition(currentPos, direction)
+        if (count > 10) break // Éviter les boucles infinies
+      }
+
+      freeSpaces[direction] = count
+    })
+
+    return freeSpaces
+  }
+
+  private calculateTrapRisk(head: Position, body: Position[], gridSize: number): number {
+    const freeSpaces = this.calculateFreeSpacesInDirections(head, body, gridSize)
+    const totalFreeSpaces = Object.values(freeSpaces).reduce((sum, spaces) => sum + spaces, 0)
+    
+    // Plus l'espace libre total est faible, plus le risque de piège est élevé
+    const maxPossibleSpaces = gridSize * 4 // Approximation
+    return 1 - Math.min(totalFreeSpaces / maxPossibleSpaces, 1)
+  }
+
+  private isOnOptimalManhattanPath(currentHead: Position, newHead: Position, apple: Position): boolean {
+    // Vérifie si le mouvement va dans la direction optimale vers la pomme
+    const deltaX = apple.x - currentHead.x
+    const deltaY = apple.y - currentHead.y
+    
+    const moveX = newHead.x - currentHead.x
+    const moveY = newHead.y - currentHead.y
+    
+    // Le mouvement est optimal s'il réduit la distance sur l'axe le plus éloigné
+    if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+      // Priorité à l'axe X
+      return (deltaX > 0 && moveX > 0) || (deltaX < 0 && moveX < 0)
+    } else {
+      // Priorité à l'axe Y
+      return (deltaY > 0 && moveY > 0) || (deltaY < 0 && moveY < 0)
+    }
   }
 }

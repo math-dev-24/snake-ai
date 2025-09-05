@@ -32,6 +32,8 @@ export const useSnake = () => {
     epochs: 1000,
     memorySize: 10000,
     epsilon: 0.1,
+    epsilonDecay: 0.995,
+    epsilonMin: 0.01,
     gamma: 0.95,
   })
 
@@ -205,7 +207,7 @@ export const useSnake = () => {
         currentSnake.body,
         currentApple,
         currentDirection,
-        20, // GRID_SIZE
+        gridService.GRID_SIZE
       )
       loggerService.log(
         `IA Decision: ${aiDirection}, Current direction: ${currentDirection}`,
@@ -214,7 +216,7 @@ export const useSnake = () => {
 
       // Calculer la nouvelle position pour la récompense
       const newHead = getNextHeadPosition(currentSnake.body[0], aiDirection)
-      const hitWall = newHead.x < 0 || newHead.x >= 20 || newHead.y < 0 || newHead.y >= 20
+      const hitWall = newHead.x < 0 || newHead.x >= gridService.GRID_SIZE || newHead.y < 0 || newHead.y >= gridService.GRID_SIZE
       const hitSelf = currentSnake.body.some(
         (segment) => segment.x === newHead.x && segment.y === newHead.y,
       )
@@ -338,7 +340,7 @@ export const useSnake = () => {
           currentSnake.body,
           currentApple,
           currentDirection,
-          20, // GRID_SIZE
+          gameState.gridSize
         )
       } else {
         aiDirection = directionKeys[Math.floor(Math.random() * directionKeys.length)]
@@ -356,12 +358,12 @@ export const useSnake = () => {
       updateReactiveState()
 
       const currentState = aiService.encodeGameState(
-        getGameState(currentSnake.body, currentApple, currentDirection, 20),
+        getGameState(currentSnake.body, currentApple, currentDirection, gridService.GRID_SIZE),
       )
 
       const newHead = getNextHeadPosition(currentSnake.body[0], aiDirection)
 
-      const hitWall = newHead.x < 0 || newHead.x >= 20 || newHead.y < 0 || newHead.y >= 20
+      const hitWall = newHead.x < 0 || newHead.x >= gridService.GRID_SIZE || newHead.y < 0 || newHead.y >= gridService.GRID_SIZE
       const hitSelf = currentSnake.body.some(
         (segment) => segment.x === newHead.x && segment.y === newHead.y,
       )
@@ -391,7 +393,7 @@ export const useSnake = () => {
       const newApple = gridService.getApple()
       const newDirection = gridService.getCurrentDirection()
       const nextState = aiService.encodeGameState(
-        getGameState(newSnake.body, newApple, newDirection, 20),
+        getGameState(newSnake.body, newApple, newDirection, gridService.GRID_SIZE),
       )
 
       aiService.addToMemory({
@@ -543,6 +545,7 @@ export const useSnake = () => {
     startAIGame,
     restartGame,
     changeDirection,
+    grid_size: gridService.GRID_SIZE,
 
     // États IA
     isAIPlaying,

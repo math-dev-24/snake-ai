@@ -2,7 +2,7 @@ import type { Position, Snake, Direction, PathNode } from '@/types'
 import { directionValues } from '@/shared/constants'
 
 export class GridService {
-  private readonly GRID_SIZE = 20
+  public readonly GRID_SIZE = 15
   private snake: Snake
   private apple: Position
   private gameOver: boolean = false

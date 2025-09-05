@@ -121,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import type { AIDecision, AIPerformance, AITrainingConfig } from '@/types/ai'
+import type { AIDecision, AIPerformance, AITrainingConfig } from '@/types/ai.ts'
 
 interface Props {
     isAIPlaying: boolean
